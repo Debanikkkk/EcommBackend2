@@ -12,10 +12,15 @@ public class SecurityConfig {
         http
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+//                                "/swagger-ui/**",
+//                                "/swagger-ui.html",
+////                                "api/**",
+//                                "/v3/api-docs/**",
+//                                "/v3/api-docs.yaml"
+                                "/api/users/register",
+                                "/api/auth/login",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**",
-                                "/v3/api-docs.yaml"
+                                "/v3/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

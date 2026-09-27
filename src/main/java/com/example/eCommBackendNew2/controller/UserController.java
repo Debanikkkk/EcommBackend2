@@ -1,0 +1,39 @@
+package com.example.eCommBackendNew2.controller;
+
+import com.example.eCommBackendNew2.dto.RegisterUserRequest;
+import com.example.eCommBackendNew2.dto.UserResponse;
+import com.example.eCommBackendNew2.repository.UserRepository;
+import com.example.eCommBackendNew2.service.UserService;
+import io.swagger.v3.oas.annotations.tags.Tags;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/users")
+//@Tags(User)
+public class UserController {
+    private final UserService userService;
+
+    public UserController(UserService userService){
+        this.userService=userService;
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<UserResponse> register(@RequestBody @Valid RegisterUserRequest registerUserRequest){
+        UserResponse userResponse=userService.registerUser(registerUserRequest);
+        return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id){
+        UserResponse userById=userService.getUserById(id);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(userById);
+    }
+
+
+
+
+
+}
