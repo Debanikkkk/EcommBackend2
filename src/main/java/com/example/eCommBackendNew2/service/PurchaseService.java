@@ -7,48 +7,43 @@ import com.example.eCommBackendNew2.entity.Product;
 import com.example.eCommBackendNew2.entity.Purchase;
 import com.example.eCommBackendNew2.entity.User;
 import com.example.eCommBackendNew2.repository.CartRepository;
-import com.example.eCommBackendNew2.repository.ProductRepository;
 import com.example.eCommBackendNew2.repository.PurchaseRepository;
 import com.example.eCommBackendNew2.repository.UserRepository;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Service
 public class PurchaseService {
+    private final SecurityFilterChain securityFilterChain;
     private final PurchaseRepository purchaseRepository;
     private final UserRepository userRepository;
     private final CartRepository cartRepository;
-    private final ProductRepository productRepository;
 
     public PurchaseService(PurchaseRepository purchaseRepository,
                           UserRepository userRepository,
-                          CartRepository cartRepository,
-                          ProductRepository productRepository) {
+                                                  CartRepository cartRepository, SecurityFilterChain securityFilterChain) {
         this.purchaseRepository = purchaseRepository;
         this.userRepository = userRepository;
         this.cartRepository = cartRepository;
-        this.productRepository = productRepository;
+        this.securityFilterChain = securityFilterChain;
     }
 
-    public PurchaseResponse checkoutCart(Long userId, List<Long> productIds) {
+        @Transactional
+        public PurchaseResponse checkoutCart(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with id: " + userId));
 
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseThrow(() -> new IllegalArgumentException("Cart not found for user id: " + userId));
 
-        Set<Product> selectedProducts = new HashSet<>();
-        for (Long productId : productIds) {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new IllegalArgumentException("Product not found with id: " + productId));
-            if (!cart.getProducts().contains(product)) {
-                throw new IllegalArgumentException("Product not present in cart: " + productId);
-            }
-            selectedProducts.add(product);
+                Set<Product> selectedProducts = Set.copyOf(cart.getProducts());
+                if (selectedProducts.isEmpty()) {
+                        throw new IllegalArgumentException("Cannot checkout an empty cart");
         }
 
         BigDecimal total = selectedProducts.stream()
@@ -63,8 +58,8 @@ public class PurchaseService {
 
         Purchase savedPurchase = purchaseRepository.save(purchase);
 
-        cart.getProducts().removeIf(selectedProducts::contains);
-        cart.setTotal(calculateTotal(cart.getProducts()));
+        cart.getProducts().clear();
+        cart.setTotal(BigDecimal.ZERO);
         cartRepository.save(cart);
 
         return toResponse(savedPurchase);
@@ -76,18 +71,33 @@ public class PurchaseService {
                 .toList();
     }
 
-    public PurchaseResponse getPurchaseById(Long id) {
+        public PurchaseResponse getPurchaseById(Long id, Long userId) {
         Purchase purchase = purchaseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Purchase not found with id: " + id));
+                if (!purchase.getUser().getId().equals(userId)) {
+                        throw new IllegalArgumentException("Purchase not found with id: " + id);
+                }
         return toResponse(purchase);
     }
 
-    private BigDecimal calculateTotal(Set<Product> products) {
-        return products.stream()
-                .map(Product::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
+    public PurchaseResponse cancelPurchase(Long purchaseId, Long userId){
+        Purchase purchase=purchaseRepository.findById(purchaseId).orElseThrow(()->new IllegalArgumentException("Purchase not found"));
+        
+        if (!purchase.getUser().getId().equals(userId)){
+                throw new IllegalArgumentException("the purchase is not found ");
+        }
 
+        if(purchase.getStatus().equals("CANCELED") || purchase.getStatus().equals("COMPLETED")){
+                throw new IllegalArgumentException("PURCHASE MUST BE PENDING TO BE CANCELLED");
+        }
+        if(purchase.getStatus().equals("PENDING")){
+                purchase.setStatus("CANCELED");
+                purchaseRepository.save(purchase);
+        }
+        
+        return toResponse(purchase);
+
+}
     private PurchaseResponse toResponse(Purchase purchase) {
         List<ProductResponse> products = purchase.getProducts().stream()
                 .map(product -> new ProductResponse(

@@ -10,8 +10,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.Optional;
-
 @Service
 public class AuthService {
 //    private UserService userService;
@@ -32,6 +30,7 @@ public class AuthService {
           throw new BadCredentialsException("invalid username or password");
         }
         String token = jwtService.generateToken(
+            user.getId(),
                 user.getUsername(),
                 user.getRole()
         );

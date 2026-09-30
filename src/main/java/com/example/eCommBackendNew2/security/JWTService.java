@@ -16,10 +16,11 @@ public class JWTService {
                     .getBytes(StandardCharsets.UTF_8)
     );
 
-    public String generateToken(String username, String role) {
+        public String generateToken(Long userId, String username, String role) {
 
         return Jwts.builder()
                 .subject(username)
+                                .claim("userId", userId)
                 .claim("role", role)
                 .issuedAt(new Date())
                 .expiration(
@@ -47,4 +48,14 @@ public class JWTService {
                 .getPayload()
                 .get("role", String.class);
     }
+
+        public Long extractUserId(String token) {
+                Number userId = Jwts.parser()
+                                .verifyWith(secretKey)
+                                .build()
+                                .parseSignedClaims(token)
+                                .getPayload()
+                                .get("userId", Number.class);
+                return userId.longValue();
+        }
 }

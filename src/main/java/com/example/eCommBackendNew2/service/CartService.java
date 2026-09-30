@@ -34,6 +34,10 @@ public class CartService {
         return toResponse(cart);
     }
 
+        public List<ProductResponse> getProductsByUserId(Long userId) {
+                return getCartByUserId(userId).products();
+        }
+
     public CartResponse addProductToCart(Long userId, Long productId) {
         Cart cart = cartRepository.findByUserId(userId)
                 .orElseGet(() -> createEmptyCart(userId));

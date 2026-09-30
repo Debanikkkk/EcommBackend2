@@ -56,6 +56,10 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    public List<ProductResponse> getUniqueBoughtProducts(Long userId){
+        List<Product> products=productRepository.findByUserId(userId)
+        return toResponse(productsRes);
+    }
     private ProductResponse toResponse(Product product) {
         return new ProductResponse(
                 product.getId(),
